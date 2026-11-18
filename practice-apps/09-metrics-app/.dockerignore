@@ -1,0 +1,12 @@
+.env
+.env.*
+.venv
+__pycache__
+*.pyc
+.git
+docker-compose.yaml
+deploy.sh
+commands.txt
+*.md
+prometheus.yml
+grafana

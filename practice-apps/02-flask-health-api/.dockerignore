@@ -1,0 +1,15 @@
+.env
+.env.*
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+
+docker-compose.yaml
+docker-compose.*.yaml
+deploy.sh
+commands.txt
+
+EXERCISES.md
+README.md

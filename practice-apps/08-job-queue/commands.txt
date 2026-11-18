@@ -1,0 +1,104 @@
+EXCERCISE 1:
+
+docker run -d --name jobs-redis -p 6379:6379 redis:7
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export REDIS_HOST=localhost REDIS_PORT=6379 PORT=5000
+python app.py
+
+python worker.py
+
+curl -s -X POST http://localhost:5000/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"n":7}'
+curl -s http://localhost:5000/jobs/JOB_ID
+curl -s http://localhost:5000/health
+
+EXCERCISE 2:
+
+docker run -d --name jobs-dashboard \
+  -e RQ_DASHBOARD_REDIS_URL=redis://host.docker.internal:6379 \
+  -p 9181:9181 \
+  eoranged/rq-dashboard
+
+EXCERCISE 3:
+
+docker rm -f jobs-redis jobs-dashboard
+docker compose up -d redis dashboard
+docker compose ps
+
+docker compose exec redis redis-cli incr jobs-check
+docker compose restart redis
+docker compose exec redis redis-cli get jobs-check
+
+EXCERCISE 4:
+
+docker build -t my-job-queue:1.0 .
+docker run --rm --name job-web \
+  --network 08-job-queue_default \
+  -e REDIS_HOST=redis -e REDIS_PORT=6379 -e PORT=5000 \
+  -p 5000:5000 \
+  my-job-queue:1.0
+
+docker run --rm --name job-worker \
+  --network 08-job-queue_default \
+  -e REDIS_HOST=redis -e REDIS_PORT=6379 \
+  my-job-queue:1.0 python worker.py
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-job-queue:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-job-queue:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-job-queue:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-job-queue:1.0
+docker compose pull web
+docker images
+
+EXCERCISE 6:
+
+docker compose down
+docker compose up -d --scale worker=3
+docker compose ps
+
+curl -s http://localhost:5000/health
+curl -s -X POST http://localhost:5000/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"n":7}'
+docker compose logs worker
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/job-queue'
+scp docker-compose.yaml root@46.101.63.196:~/job-queue/
+
+ssh root@46.101.63.196
+cd ~/job-queue
+cat > .env <<'EOF'
+SERVER_IP=46.101.63.196
+PORT=5002
+REDIS_HOST=redis
+REDIS_PORT=6379
+EOF
+
+docker login 46.101.63.196:8081
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl -s http://46.101.63.196:5002/health
+curl -s -X POST http://46.101.63.196:5002/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"n":7}'
+
+EXCERCISE 8:
+
+ssh root@46.101.63.196 'ufw allow 5002/tcp'
+curl -s http://46.101.63.196:5002/health

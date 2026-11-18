@@ -1,0 +1,13 @@
+services:
+  web:
+    command: ["python", "app.py"]
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./app.py:/app/app.py
+    develop:
+      watch:
+        - action: sync
+          path: ./app.py
+          target: /app/app.py

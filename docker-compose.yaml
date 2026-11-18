@@ -7,7 +7,7 @@ services:
       - DB_SERVER=${DB_SERVER}
       - DB_NAME=${DB_NAME}
     ports:
-    - 8080:8080
+      - 8080:8080
     container_name: my-java-app
     depends_on:
       mysql:
@@ -23,10 +23,10 @@ services:
       - MYSQL_USER=appuser
       - MYSQL_PASSWORD=apppassword
     healthcheck:
-    test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-    interval: 10s
-    timeout: 5s
-    retries: 5
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - 'mysql-data:/var/lib/mysql'
     container_name: mysql

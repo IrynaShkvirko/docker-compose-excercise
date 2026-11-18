@@ -1,0 +1,93 @@
+EXCERCISE 1:
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+set -a
+. ./.env
+set +a
+python app.py
+
+curl http://localhost:8080/
+curl http://localhost:8080/health
+
+
+docker run --rm --name flask-health \
+  -p 8080:8080 \
+  -v "$PWD":/app \
+  -w /app \
+  -e PORT=8080 \
+  -e APP_NAME=flask-health-api \
+  -e APP_ENV=development \
+  python:3.12-slim \
+  sh -c "pip install -r requirements.txt && python app.py"
+
+
+  EXCERCISE 2:
+
+ docker network create flask-net 
+
+ docker run --rm --name flask-health \
+  --network flask-net \
+  -p 8080:8080 \
+  -v "$PWD":/app \
+  -w /app \
+  -e PORT=8080 \
+  -e APP_NAME=flask-health-api \
+  -e APP_ENV=development \
+  python:3.12-slim \
+  sh -c "pip install -r requirements.txt && python app.py"
+
+  docker run --rm --network flask-net curlimages/curl http://flask-health:8080/health
+
+  docker run --rm --network flask-net curlimages/curl http://localhost:8080/health
+
+EXCERCISE 4:
+
+docker build -t flask-health-api:1.0 .
+docker run --rm --name flask-health -p 8080:8080 \
+  -e APP_NAME=flask-health-api \
+  -e APP_ENV=development \
+  flask-health-api:1.0
+
+EXCERCISE 5:
+
+docker login 46.101.32.141:8081
+
+docker build --platform linux/amd64 \
+  -t 46.101.32.141:8081/docker-excercise/my-flask-health-api:1.0 .
+docker push 46.101.32.141:8081/docker-excercise/my-flask-health-api:1.0
+
+docker rmi 46.101.32.141:8081/docker-excercise/my-flask-health-api:1.0
+docker compose pull
+docker images
+
+EXCERCISE 7:
+
+ssh root@46.101.32.141 'mkdir -p ~/flask-health'
+scp docker-compose.yaml root@46.101.32.141:~/flask-health/
+
+ssh root@46.101.32.141
+cd ~/flask-health
+cat > .env <<'EOF'
+PORT=5000
+APP_NAME=flask-health-api
+APP_ENV=production
+EOF
+
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl http://46.101.32.141:5000/
+curl http://46.101.32.141:5000/health
+
+Check deploy.sh script
+
+docker compose down
+docker logout 46.101.32.141:8081
+cd ~/flask-health && docker compose down
+rm -rf ~/flask-health
+sudo apt-get remove -y docker-compose-plugin docker-compose-v2
+sudo rm /etc/docker/daemon.json

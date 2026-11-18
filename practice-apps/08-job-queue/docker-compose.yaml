@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  dashboard:
+    image: eoranged/rq-dashboard
+    environment:
+      RQ_DASHBOARD_REDIS_URL: redis://redis:6379
+    ports:
+      - "9181:9181"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ${SERVER_IP}:8081/docker-excercise/my-job-queue:1.0
+    build: .
+    platform: linux/amd64
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: "6379"
+      PORT: ${PORT}
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    image: ${SERVER_IP}:8081/docker-excercise/my-job-queue:1.0
+    build: .
+    platform: linux/amd64
+    command: ["python", "worker.py"]
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: "6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis-data:

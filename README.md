@@ -4,6 +4,10 @@
 A small Spring Boot (Java 17) app that shows a team-members page backed by a MySQL database.
 On startup it creates the `team_members` table and seeds it with sample data if the table is empty.
 
+The same repository also holds ten smaller apps under `practice-apps/`. Each one repeats the container exercises on a different stack: run a container, add a GUI, write Compose, build an image, push it, and run it on a server.
+
+The list of apps and a short description of each one is in the [practice apps README](practice-apps/README.md).
+
 ## Project structure
 
 | Path | Purpose |
@@ -13,6 +17,7 @@ On startup it creates the `team_members` table and seeds it with sample data if 
 | `build.gradle` / `settings.gradle` | Gradle build (project name `docker-exercises-project`) |
 | `Dockerfile` | Builds the app image from the jar in `build/libs` |
 | `docker-compose.yaml` | Runs the app, MySQL and phpMyAdmin together |
+| [`practice-apps/`](practice-apps/README.md) | Ten smaller container exercises, with a description of each app |
 
 ## Prerequisites
 
@@ -116,6 +121,19 @@ docker compose down -v             # also delete the mysql-data volume (wipes th
 ```
 
 After changing the code, repeat steps 1 and 2, then run `docker compose up -d --force-recreate my-java-app`.
+
+## Tests and checks
+
+| Command | What it does | Needs |
+|---|---|---|
+| `gradle test` | Java unit tests | Java 17, Gradle |
+| `./scripts/validate.sh` | Validates `docker-compose.yaml` (`docker compose config`) and lints the `Dockerfile` with hadolint | Docker |
+| `./scripts/smoke-test.sh` | Builds the jar and image, starts the whole stack, checks `/get-data` returns the 5 seeded members, checks the front page and phpMyAdmin, then tears everything down | Java 17, Gradle, Docker, curl |
+
+The smoke test runs `docker compose down -v`, so it deletes the `mysql-data` volume. It also needs
+ports 8080, 8083 and 3306 to be free.
+
+The same checks run in CI on every push and pull request (`.github/workflows/docker-checks.yml`).
 
 ## API
 

@@ -1,0 +1,11 @@
+.env
+.env.*
+.venv
+.postgres
+__pycache__
+*.pyc
+.git
+docker-compose.yaml
+deploy.sh
+commands.txt
+*.md

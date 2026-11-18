@@ -1,0 +1,98 @@
+EXCERCISE 1:
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+APP_ENV=development PORT=5000 python app.py
+curl -s http://localhost:5000/config
+
+APP_ENV=production LOG_LEVEL=INFO GREETING='Hello from production' \
+  gunicorn -b 0.0.0.0:5000 app:app
+curl -s http://localhost:5000/config
+
+EXCERCISE 2:
+
+docker run --rm --name dev-vs-prod-dev \
+  -p 5000:5000 \
+  -v "$PWD":/app -w /app \
+  -e APP_ENV=development -e PORT=5000 \
+  python:3.12-slim \
+  sh -c "pip install -r requirements.txt && python app.py"
+
+docker run --rm --name dev-vs-prod-prod \
+  -p 5001:5000 \
+  -v "$PWD":/app -w /app \
+  -e APP_ENV=production -e LOG_LEVEL=INFO -e GREETING='Hello from production' \
+  python:3.12-slim \
+  sh -c "pip install -r requirements.txt && gunicorn -b 0.0.0.0:5000 app:app"
+
+curl -s http://localhost:5000/config
+curl -s http://localhost:5001/config
+
+EXCERCISE 3:
+
+docker compose -f docker-compose.yaml up -d
+curl -s http://localhost:5000/config
+
+docker compose up -d
+curl -s http://localhost:5000/config
+
+EXCERCISE 4:
+
+docker build -t my-dev-vs-prod:1.0 .
+docker run --rm -p 5000:5000 \
+  -e GREETING='Hello from production' \
+  my-dev-vs-prod:1.0
+curl -s http://localhost:5000/config
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-dev-vs-prod:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-dev-vs-prod:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-dev-vs-prod:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-dev-vs-prod:1.0
+docker compose -f docker-compose.yaml pull web
+docker images
+
+EXCERCISE 6:
+
+docker compose up -d
+curl -s http://localhost:5000/config
+
+docker compose --profile tools up -d
+docker compose ps
+
+docker compose watch
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/dev-vs-prod'
+scp docker-compose.yaml root@46.101.63.196:~/dev-vs-prod/
+
+ssh root@46.101.63.196
+cd ~/dev-vs-prod
+cat > .env <<'EOF'
+SERVER_IP=46.101.63.196
+PORT=5003
+LOG_LEVEL=INFO
+GREETING=Hello from production
+EOF
+
+docker login 46.101.63.196:8081
+docker compose -f docker-compose.yaml pull
+docker compose -f docker-compose.yaml up -d
+docker compose ps
+docker compose logs
+
+curl -s http://46.101.63.196:5003/config
+
+EXCERCISE 8:
+
+ssh root@46.101.63.196 'ufw allow 5003/tcp'
+curl -s http://46.101.63.196:5003/config
