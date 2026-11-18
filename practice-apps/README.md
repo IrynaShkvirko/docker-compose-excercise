@@ -1,20 +1,16 @@
 # Practice apps
-Small apps with app code only. You add the `Dockerfile` and `docker-compose.yaml` for each.
 
-| # | App | Stack | Needs | New concept |
-|---|-----|-------|-------|-------------|
-| 01 | static-site | HTML/CSS | – | nginx, COPY, bind mount |
-| 02 | flask-health-api | Python | – | layer cache, HEALTHCHECK |
-| 03 | express-url-shortener | Node | – | npm ci, non-root user, build args |
-| 04 | todo-postgres | FastAPI | PostgreSQL | volumes, healthcheck, init.sql |
-| 05 | redis-counter | Flask | Redis | service DNS, restart policy |
-| 06 | go-notes-mongo | Go | MongoDB | multi-stage, tiny image |
-| 07 | blog-proxy | Flask + static | nginx | reverse proxy, networks |
-| 08 | job-queue | Flask + RQ | Redis | one image, many commands, --scale |
-| 09 | metrics-app | Flask | Prometheus, Grafana | config mounts |
-| 10 | dev-vs-prod | Flask | – | override file, profiles, watch |
+Each folder is a small app used to practice the same container path: run it, add a GUI, write Compose, build an image, push it, and run it on a server. `EXERCISES.md` is the exercise list. `commands.txt` has the commands. `deploy.sh` builds the image and starts that app on the server.
 
-Each folder has its own README with run command, env vars and endpoints.
-
-Each app folder also has `EXERCISES.md`: the same exercise set as the original Java project
-(containers → GUI → compose → Dockerfile → push → compose with app → server → ports), adapted to that app.
+| # | App | Description |
+|---|-----|-------------|
+| 01 | [static-site](01-static-site) | A static HTML and CSS site served by nginx. |
+| 02 | [flask-health-api](02-flask-health-api) | A Flask API with a greeting and a health check. |
+| 03 | [express-url-shortener](03-express-url-shortener) | An Express app that keeps short links in memory and redirects to the original URL. |
+| 04 | [todo-postgres](04-todo-postgres) | A FastAPI todo list stored in PostgreSQL, with pgAdmin for browsing the tables. |
+| 05 | [redis-counter](05-redis-counter) | A visit counter and per-address rate limiter backed by Redis. |
+| 06 | [go-notes-mongo](06-go-notes-mongo) | A Go notes API stored in MongoDB, built with a multi-stage image. |
+| 07 | [blog-proxy](07-blog-proxy) | A small blog. Nginx serves the page and proxies `/api` to Flask. |
+| 08 | [job-queue](08-job-queue) | A web app and worker processes share one image and run jobs from a Redis queue. |
+| 09 | [metrics-app](09-metrics-app) | A Flask app that exposes Prometheus metrics, with Grafana already pointed at Prometheus. |
+| 10 | [dev-vs-prod](10-dev-vs-prod) | One Flask app. Development reloads on file changes. Production runs under gunicorn. |

@@ -1,0 +1,93 @@
+EXCERCISE 1:
+
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+
+cd ../frontend
+python3 -m http.server 8080
+
+EXCERCISE 2:
+
+docker run -d --name blog-nginx \
+  -p 8080:80 \
+  -e BACKEND_HOST=host.docker.internal \
+  -e BACKEND_PORT=5000 \
+  -v "$PWD/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro" \
+  -v "$PWD/frontend:/usr/share/nginx/html:ro" \
+  nginx:alpine
+
+curl -s http://localhost:8080/api/health
+curl -s -X POST http://localhost:8080/api/posts \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Hello","body":"from nginx"}'
+
+EXCERCISE 3:
+
+docker rm -f blog-nginx
+docker compose up -d nginx
+docker compose logs -f nginx
+
+EXCERCISE 4:
+
+docker build -t my-blog-backend:1.0 .
+docker build -t my-blog-frontend:1.0 frontend
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-blog-backend:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-blog-backend:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-blog-backend:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-blog-backend:1.0
+docker compose pull backend
+docker images
+
+EXCERCISE 6:
+
+docker compose down
+docker compose up -d
+docker compose ps
+
+curl -s http://localhost:8080/api/health
+curl -s -X POST http://localhost:8080/api/posts \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Saved","body":"on the volume"}'
+curl -s http://localhost:8080/api/posts
+
+docker compose down
+docker compose up -d
+curl -s http://localhost:8080/api/posts
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/blog/nginx ~/blog/frontend'
+scp docker-compose.yaml root@46.101.63.196:~/blog/
+scp nginx/default.conf.template root@46.101.63.196:~/blog/nginx/
+scp frontend/index.html frontend/style.css frontend/app.js root@46.101.63.196:~/blog/frontend/
+
+ssh root@46.101.63.196
+cd ~/blog
+cat > .env <<'EOF'
+SERVER_IP=46.101.63.196
+PORT=80
+EOF
+
+docker login 46.101.63.196:8081
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl -s http://46.101.63.196/api/health
+
+EXCERCISE 8:
+
+ssh root@46.101.63.196 'ufw allow 80/tcp'
+curl -s http://46.101.63.196/api/health

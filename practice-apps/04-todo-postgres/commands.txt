@@ -1,0 +1,84 @@
+EXCERCISE 1:
+
+docker run -d --name todo-postgres \
+  -e POSTGRES_USER=todo \
+  -e POSTGRES_PASSWORD=your-password \
+  -e POSTGRES_DB=todos \
+  -p 5432:5432 \
+  -v "$PWD/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro" \
+  postgres:16
+
+docker exec todo-postgres pg_isready -U todo -d todos
+docker exec todo-postgres psql -U todo -d todos -c 'SELECT * FROM todos;'
+
+python3 --version
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export DATABASE_URL='postgresql://todo:your-password@localhost:5432/todos'
+uvicorn main:app --port 8000
+
+
+EXCERCISE 2:
+
+docker run -d --name todo-pgadmin \
+  -e PGADMIN_DEFAULT_EMAIL=admin@example.com \
+  -e PGADMIN_DEFAULT_PASSWORD=admin \
+  -p 5050:80 \
+  dpage/pgadmin4
+
+EXCERCISE 3:
+
+docker rm -f todo-postgres todo-pgadmin
+docker compose up -d
+docker compose ps
+
+docker compose down
+docker compose up -d
+
+docker compose down -v
+docker compose up -d
+
+EXCERCISE 4:
+
+docker compose up -d
+docker build -t my-todo-api:1.0 .
+docker run --rm --name todo-api \
+  --network 04-todo-postgres_default \
+  -e DATABASE_URL='postgresql://todo:your-password@postgres:5432/todos' \
+  -p 8000:8000 \
+  my-todo-api:1.0
+
+EXCERCISE 5:
+
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-todo-api:1.0 .
+
+set -a
+. ./.env
+set +a
+printf '%s' "$NEXUS_PASSWORD" | docker login "${SERVER_IP}:8081" -u "$NEXUS_USER" --password-stdin
+docker push "${SERVER_IP}:8081/docker-excercise/my-todo-api:1.0"
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/todo-postgres/db'
+scp docker-compose.yaml root@46.101.63.196:~/todo-postgres/docker-compose.yaml
+scp db/init.sql root@46.101.63.196:~/todo-postgres/db/init.sql
+
+ssh root@46.101.63.196 'cat > ~/todo-postgres/.env' <<'EOF'
+SERVER_IP=46.101.63.196
+POSTGRES_USER=todo
+POSTGRES_PASSWORD=your-password
+POSTGRES_DB=todos
+PGADMIN_DEFAULT_EMAIL=admin@example.com
+PGADMIN_DEFAULT_PASSWORD=admin
+EOF
+
+ssh root@46.101.63.196 'docker info | grep 46.101.63.196:8081'
+printf '%s' "$NEXUS_PASSWORD" | ssh root@46.101.63.196 'docker login 46.101.63.196:8081 -u admin --password-stdin'
+ssh root@46.101.63.196 'cd ~/todo-postgres && docker compose pull && docker compose up -d && docker compose ps'
+
+curl -s http://46.101.63.196:8000/health
+
+ssh root@46.101.63.196 'cd ~/todo-postgres && docker compose logs api'

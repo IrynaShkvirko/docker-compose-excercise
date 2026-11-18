@@ -4,6 +4,23 @@
 A small Spring Boot (Java 17) app that shows a team-members page backed by a MySQL database.
 On startup it creates the `team_members` table and seeds it with sample data if the table is empty.
 
+The same repository also holds ten smaller apps under `practice-apps/`. Each one repeats the container exercises (run a container, add a GUI, Compose, Dockerfile, push to a registry, deploy) on a different stack. Details and commands are in that folder's `README.md`, `EXERCISES.md`, and `commands.txt`.
+
+## Practice apps
+
+| App | What it does |
+|---|---|
+| [01 Static site](practice-apps/01-static-site) | Serves a small HTML and CSS site with nginx. |
+| [02 Flask health API](practice-apps/02-flask-health-api) | Returns a greeting and a `/health` check from a Flask process. |
+| [03 Express URL shortener](practice-apps/03-express-url-shortener) | Stores short links in memory and redirects callers to the original URL. |
+| [04 Todo API](practice-apps/04-todo-postgres) | A FastAPI todo list saved in PostgreSQL, with pgAdmin beside it. |
+| [05 Redis counter](practice-apps/05-redis-counter) | Counts visits in Redis and returns 429 after too many calls from one address. |
+| [06 Go notes API](practice-apps/06-go-notes-mongo) | Creates, lists, and deletes notes in MongoDB. The image is a multi-stage Go build. |
+| [07 Blog](practice-apps/07-blog-proxy) | Nginx serves the page and forwards `/api` to a Flask backend. Only Nginx is published. |
+| [08 Job queue](practice-apps/08-job-queue) | A web app enqueues jobs in Redis, and worker containers run them. One image, two commands. |
+| [09 Metrics app](practice-apps/09-metrics-app) | Exposes Prometheus metrics. Grafana is provisioned with Prometheus as its data source. |
+| [10 Dev vs prod](practice-apps/10-dev-vs-prod) | The same Flask app runs with a reload in development and gunicorn in production. |
+
 ## Project structure
 
 | Path | Purpose |

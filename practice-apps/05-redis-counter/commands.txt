@@ -1,0 +1,99 @@
+EXCERCISE 1:
+
+docker run -d --name redis-counter-redis -p 6379:6379 redis:7
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export REDIS_HOST=localhost REDIS_PORT=6379 RATE_LIMIT=5 RATE_WINDOW_SECONDS=60 PORT=5000
+python app.py
+
+curl -s http://localhost:5000/visit
+curl -s http://localhost:5000/visit
+curl -s http://localhost:5000/limited
+curl -s http://localhost:5000/health
+
+docker stop redis-counter-redis
+curl -s http://localhost:5000/health
+docker start redis-counter-redis
+
+EXCERCISE 2:
+
+docker run -d --name redis-counter-insight -p 5540:5540 redis/redisinsight:latest
+
+EXCERCISE 3:
+
+docker rm -f redis-counter-redis redis-counter-insight
+docker compose up -d redis redisinsight
+docker compose ps
+
+docker compose exec redis redis-cli incr visits
+docker compose restart redis
+docker compose exec redis redis-cli get visits
+
+EXCERCISE 4:
+
+docker build -t my-redis-counter:1.0 .
+docker run --rm --name redis-counter \
+  --network 05-redis-counter_default \
+  -e REDIS_HOST=redis \
+  -e REDIS_PORT=6379 \
+  -e PORT=5000 \
+  -p 5000:5000 \
+  my-redis-counter:1.0
+
+curl -s http://localhost:5000/health
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-redis-counter:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-redis-counter:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-redis-counter:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-redis-counter:1.0
+docker compose pull app
+docker images
+
+EXCERCISE 6:
+
+docker compose down
+docker compose up -d
+docker compose ps
+
+curl -s http://localhost:5000/health
+curl -s http://localhost:5000/visit
+curl -s http://localhost:5000/limited
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/redis-counter'
+scp docker-compose.yaml root@46.101.63.196:~/redis-counter/
+
+ssh root@46.101.63.196
+cd ~/redis-counter
+cat > .env <<'EOF'
+PORT=5001
+REDIS_PORT=6379
+RATE_LIMIT=5
+RATE_WINDOW_SECONDS=60
+SERVER_IP=46.101.63.196
+EOF
+
+docker login 46.101.63.196:8081
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl -s http://46.101.63.196:5001/health
+curl -s http://46.101.63.196:5001/visit
+curl -s http://46.101.63.196:5001/limited
+
+EXCERCISE 8:
+
+ssh root@46.101.63.196 'ufw allow 5001/tcp'
+curl -s http://46.101.63.196:5001/health

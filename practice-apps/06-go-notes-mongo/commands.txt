@@ -1,0 +1,98 @@
+EXCERCISE 1:
+
+docker run -d --name notes-mongo \
+  -e MONGO_INITDB_ROOT_USERNAME=notes \
+  -e MONGO_INITDB_ROOT_PASSWORD=notes-password \
+  -p 27017:27017 \
+  mongo:7
+
+export MONGO_URI='mongodb://notes:notes-password@localhost:27017/?authSource=admin'
+export MONGO_DB=notes
+export PORT=8080
+go run .
+
+curl -s -X POST http://localhost:8080/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"First note","body":"hello"}'
+curl -s http://localhost:8080/notes
+curl -s http://localhost:8080/health
+
+EXCERCISE 2:
+
+docker run -d --name notes-express \
+  -e ME_CONFIG_MONGODB_URL='mongodb://notes:notes-password@host.docker.internal:27017/' \
+  -e ME_CONFIG_BASICAUTH_USERNAME=admin \
+  -e ME_CONFIG_BASICAUTH_PASSWORD=admin \
+  -p 8081:8081 \
+  mongo-express
+
+EXCERCISE 3:
+
+docker rm -f notes-mongo notes-express
+docker compose up -d mongo mongo-express
+docker compose ps
+
+docker compose down
+docker compose up -d mongo mongo-express
+
+EXCERCISE 4:
+
+docker build -f Dockerfile.single -t my-notes-api:single .
+docker build -t my-notes-api:1.0 .
+docker images
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  -t 46.101.63.196:8081/docker-excercise/my-notes-api:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-notes-api:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-notes-api:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-notes-api:1.0
+docker compose pull api
+docker images
+
+EXCERCISE 6:
+
+docker compose down
+docker compose up -d
+docker compose ps
+
+curl -s http://localhost:8080/health
+curl -s -X POST http://localhost:8080/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"From compose","body":"saved in mongo"}'
+curl -s http://localhost:8080/notes
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/notes'
+scp docker-compose.yaml root@46.101.63.196:~/notes/
+
+ssh root@46.101.63.196
+cd ~/notes
+cat > .env <<'EOF'
+SERVER_IP=46.101.63.196
+PORT=8082
+MONGO_USER=notes
+MONGO_PASSWORD=notes-password
+MONGO_DB=notes
+ME_USER=admin
+ME_PASSWORD=admin
+EOF
+
+docker login 46.101.63.196:8081
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl -s http://46.101.63.196:8082/health
+
+EXCERCISE 8:
+
+ssh root@46.101.63.196 'ufw allow 8082/tcp'
+curl -s http://46.101.63.196:8082/health

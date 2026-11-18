@@ -1,0 +1,41 @@
+services:
+  backend:
+    image: ${SERVER_IP}:8081/docker-excercise/my-blog-backend:1.0
+    build: .
+    platform: linux/amd64
+    environment:
+      PORT: "5000"
+      DATA_FILE: /data/posts.json
+    volumes:
+      - posts:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - blog
+
+  nginx:
+    image: nginx:alpine
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: "5000"
+    ports:
+      - "${PORT}:80"
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - blog
+
+volumes:
+  posts:
+
+networks:
+  blog:
