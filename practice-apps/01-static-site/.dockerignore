@@ -1,0 +1,12 @@
+.env
+.env.*
+.git
+.gitignore
+
+docker-compose.yaml
+docker-compose.*.yaml
+deploy.sh
+commands.txt
+
+EXERCISES.md
+README.md

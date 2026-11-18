@@ -1,0 +1,165 @@
+docker run -d --name static-site \
+  -p 8080:80 \
+  -v "$PWD":/usr/share/nginx/html:ro \
+  nginx:alpine
+
+docker run -d --name static-site \
+  -p 8080:80 \
+  -v "$PWD":/usr/share/nginx/html:ro \
+  -v "$PWD/default.conf":/etc/nginx/conf.d/default.conf:ro \
+  nginx:alpine
+
+ Build the image: `docker build -t <registry>/my-static-site:1.0 .`
+- `docker login <registry>`, then `docker push <registry>/my-static-site:1.0`
+- Change the compose `image:` to the full registry path and check that `docker compose pull` works
+
+
+docker build -t my-static-site:1.0 .
+
+docker login 46.101.32.141:8081
+docker build -t 46.101.32.141:8081/docker-excercise/my-static-site:1.0 .
+docker push 46.101.32.141:8081/docker-excercise/my-static-site:1.0
+
+docker rmi 46.101.32.141:8081/docker-excercise/my-static-site:1.0
+docker compose pull
+docker images
+
+
+Exercise 5: Build and push the Docker image
+On the Mac, allow Docker to talk to the HTTP registry. OrbStack reads ~/.orbstack/config/docker.json, not ~/.docker/daemon.json. Put this in that file:
+
+{
+  "insecure-registries": ["46.101.32.141:8081"]
+}
+Quit OrbStack and open it again. orb restart restarts a Linux VM and does not reload this file. Check the registry is loaded:
+
+docker info | grep -A 5 "Insecure Registries"
+Log in. The user is the Nexus user (admin). The password is the Nexus UI password.
+
+docker login 46.101.32.141:8081
+The server is linux/amd64 and the Mac builds linux/arm64 by default. Build the tag the server can run, then push it:
+
+docker build --platform linux/amd64 \
+  -t 46.101.32.141:8081/docker-excercise/my-static-site:1.0 .
+docker push 46.101.32.141:8081/docker-excercise/my-static-site:1.0
+The repository path has to be in the tag. 46.101.32.141:8081/my-static-site:1.0 is the Nexus UI port without the hosted repo, and the push is rejected.
+
+Confirm the local image is amd64, delete it, and pull the copy that is in Nexus:
+
+docker image inspect 46.101.32.141:8081/docker-excercise/my-static-site:1.0 \
+  --format '{{.Architecture}}'
+docker rmi 46.101.32.141:8081/docker-excercise/my-static-site:1.0
+docker compose pull
+docker images
+Architecture must print amd64. docker compose pull must print Pulled.
+
+Exercise 6: Switch compose to your image
+docker-compose.yaml should be:
+
+
+services:
+  web:
+    image: 46.101.32.141:8081/docker-excercise/my-static-site:1.0
+    build: .
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+build: . stays so the Mac can rebuild. The server uses image: and does not pass --build.
+
+Keep the live mounts in docker-compose.dev.yaml only:
+
+
+services:
+  web:
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./default.conf:/etc/nginx/conf.d/default.conf:ro
+.env (gitignored):
+
+
+HOST_PORT=8080
+.env.example (committed) has the same line. .gitignore contains .env.
+
+On the Mac, the dev stack and the image stack are two separate commands:
+
+
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker compose up -d
+docker compose ps
+docker compose logs
+curl -I http://localhost:8080
+curl -I should show HTTP/1.1 200 OK and X-Site-Owner: Iryna.
+
+Exercise 7: Run on a server with docker-compose
+These commands run on the server unless the prompt says Mac.
+
+Install Docker Engine if docker version is missing. Install the Compose plugin. docker compose is the command; docker-compose is the older program.
+
+docker version
+docker compose version
+If docker compose is an unknown command:
+
+
+sudo apt-get update
+sudo apt-get install -y docker-compose-plugin
+If that package does not exist:
+
+
+sudo apt-get install -y docker-compose-v2
+docker compose version
+Create the daemon config. On this server the file did not exist yet:
+
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
+{
+  "insecure-registries": ["46.101.32.141:8081"]
+}
+EOF
+sudo systemctl restart docker
+docker info | grep -A 5 "Insecure Registries"
+Restarting Docker restarts every container on that machine, including Nexus if Nexus runs there. Wait until Nexus answers again before the next step.
+
+Log in on the server with the same Nexus user:
+
+docker login 46.101.32.141:8081
+On the Mac, copy only the Compose file and .env. The image already contains the HTML and default.conf.
+
+scp docker-compose.yaml .env root@46.101.32.141:~/static-site/
+On the server:
+
+cd ~/static-site
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+docker compose pull must download the image. If it says no matching manifest for linux/amd64, the tag in Nexus is still the Mac arm64 build. Rebuild with --platform linux/amd64 on the Mac and push again. If it says no basic auth credentials, run docker login on the server again. Do not run docker compose build on the server.
+
+Check the site through the server IP. Container port 80 is published on host port 8080. style.css is a relative link, so it loads from the same host.
+
+curl -I http://46.101.32.141:8080
+curl -I http://46.101.32.141:8080/style.css
+curl -I http://46.101.32.141:8080/missing-page
+The first two responses are 200 with X-Site-Owner: Iryna. The missing page is 404 and the body is the custom 404.html.
+
+Exercise 8: Open ports
+Users need port 8080 only. Leave 8081 open for Nexus. Leave SSH open. Do not open 3306 or any other database port.
+
+If the droplet uses ufw:
+
+
+sudo ufw allow OpenSSH
+sudo ufw allow 8080/tcp
+sudo ufw enable
+sudo ufw status
+If DigitalOcean Cloud Firewalls is attached to the droplet, add inbound TCP 8080 there as well. A cloud firewall drops the traffic before ufw sees it.
+
+From the Mac:
+
+
+curl -I http://46.101.32.141:8080
+A timeout means the firewall is still blocking 8080. 200 with X-Site-Owner: Iryna means the port is open and the container is serving the image.

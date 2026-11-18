@@ -117,6 +117,19 @@ docker compose down -v             # also delete the mysql-data volume (wipes th
 
 After changing the code, repeat steps 1 and 2, then run `docker compose up -d --force-recreate my-java-app`.
 
+## Tests and checks
+
+| Command | What it does | Needs |
+|---|---|---|
+| `gradle test` | Java unit tests | Java 17, Gradle |
+| `./scripts/validate.sh` | Validates `docker-compose.yaml` (`docker compose config`) and lints the `Dockerfile` with hadolint | Docker |
+| `./scripts/smoke-test.sh` | Builds the jar and image, starts the whole stack, checks `/get-data` returns the 5 seeded members, checks the front page and phpMyAdmin, then tears everything down | Java 17, Gradle, Docker, curl |
+
+The smoke test runs `docker compose down -v`, so it deletes the `mysql-data` volume. It also needs
+ports 8080, 8083 and 3306 to be free.
+
+The same checks run in CI on every push and pull request (`.github/workflows/docker-checks.yml`).
+
 ## API
 
 | Method | Path | Description |
