@@ -1,0 +1,16 @@
+services:
+  web:
+    image: ${SERVER_IP}:8081/docker-excercise/my-url-shortener:1.0
+    platform: linux/amd64
+    environment:
+      PORT: ${PORT}
+      BASE_URL: ${BASE_URL}
+      NODE_ENV: ${NODE_ENV}
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

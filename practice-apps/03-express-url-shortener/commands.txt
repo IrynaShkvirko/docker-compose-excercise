@@ -1,0 +1,109 @@
+EXCERCISE 1:
+
+export PORT=3000
+export BASE_URL=http://localhost:3000
+export NODE_ENV=development
+npm install
+npm start
+
+curl -s -X POST http://localhost:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+
+curl -s http://localhost:3000/stats
+
+docker run --rm --name url-shortener \
+  -p 3000:3000 \
+  -v "$PWD":/app \
+  -w /app \
+  -e PORT=3000 \
+  -e BASE_URL=http://localhost:3000 \
+  -e NODE_ENV=development \
+  node:20-alpine \
+  sh -c "npm install && node server.js"
+
+EXCERCISE 2:
+
+docker network create shortener-net
+
+docker run --rm --name url-shortener \
+  --network shortener-net \
+  -p 3000:3000 \
+  -v "$PWD":/app \
+  -w /app \
+  -e PORT=3000 \
+  -e BASE_URL=http://localhost:3000 \
+  -e NODE_ENV=development \
+  node:20-alpine \
+  sh -c "npm install && node server.js"
+
+  docker run --rm --network shortener-net curlimages/curl \
+  -s -X POST http://url-shortener:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+
+  curl -s http://localhost:3000/stats
+
+EXCERCISE 3:
+
+docker stop url-shortener
+
+docker compose up -d
+docker compose logs -f
+
+curl -s -X POST http://localhost:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+
+curl -s http://localhost:3000/stats
+docker compose down
+
+EXCERCISE 5:
+
+docker login 46.101.63.196:8081
+docker build --platform linux/amd64 \
+  --build-arg NODE_VERSION=20 \
+  -t 46.101.63.196:8081/docker-excercise/my-url-shortener:1.0 .
+docker push 46.101.63.196:8081/docker-excercise/my-url-shortener:1.0
+
+image: 46.101.63.196:8081/docker-excercise/my-url-shortener:1.0
+platform: linux/amd64
+
+docker rmi 46.101.63.196:8081/docker-excercise/my-url-shortener:1.0
+docker compose pull
+docker images
+
+EXCERCISE 6:
+
+docker compose down
+docker compose up -d
+docker compose ps
+
+curl -s http://localhost:3000/health
+curl -s -X POST http://localhost:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+
+EXCERCISE 7:
+
+ssh root@46.101.63.196 'mkdir -p ~/url-shortener'
+scp docker-compose.yaml root@46.101.63.196:~/url-shortener/
+
+ssh root@46.101.63.196
+cd ~/url-shortener
+cat > .env <<'EOF'
+PORT=3000
+BASE_URL=http://46.101.63.196:3000
+NODE_ENV=production
+SERVER_IP=46.101.63.196
+EOF
+
+
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs
+
+curl -s -X POST http://46.101.63.196:3000/shorten \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
